@@ -361,17 +361,6 @@ try {
 
 ---
 
-## 13. Conclusão
-
-Esta biblioteca prioriza:
-- clareza de contratos
-- ausência de mágica
-- falhas explícitas
-
-Ela é adequada para ambientes onde **bugs de validação devem ser visíveis**, não mascarados.
-
----
-
 
 # FV — Form Validation
 
@@ -712,15 +701,3 @@ Quando `true`, a validação para no primeiro erro encontrado.
 4. Erros de schema são propagados
 5. HTML descreve regras, não lógica
 
----
-
-## 13. Conclusão
-
-`FV` é uma camada declarativa que conecta HTML e validação sem mágica implícita.
-
-Ela é adequada para cenários onde:
-- o HTML é fonte de verdade
-- erros de validação devem ser explícitos
-- bugs de schema não devem ser escondidos
-
----
