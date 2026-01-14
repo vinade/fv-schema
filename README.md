@@ -1,13 +1,7 @@
-# Biblioteca de Validação de Schemas — Documentação Técnica
+# Biblioteca de Validação de Schemas
 
-Esta biblioteca fornece um motor de validação declarativo inspirado em bibliotecas como Yup, porém com **menor superfície**, **execução explícita** e **contratos rígidos** entre validação de dados e erros de implementação.
-
-O foco do design é:
-- previsibilidade
-- isolamento de contexto
-- suporte nativo a validações síncronas e assíncronas
-- resolução segura de referências cruzadas
-- falha explícita quando a validação está mal implementada
+Esta biblioteca fornece um motor de validação declarativo inspirado em bibliotecas como Yup.  
+O foco é mantê-la simples de usar.
 
 ---
 
@@ -17,16 +11,52 @@ O foco do design é:
 
 Um **Schema** descreve como um dado deve ser validado. Ele **não transforma o dado final**, apenas valida.
 
+Exemplo 1:
 ```js
 const schema = new Schema({
   age: SR.number().min(18)
 });
 ```
 
-A validação é executada chamando:
-
+Exemplo 2:
 ```js
+
+const data = {age: 27};
 await schema.validate(data);
+```
+
+Exemplo 3:
+```js
+const age = SR.number().min(18);
+const schema = new Schema(age);
+const data = 27;
+await schema.validate(data);
+```
+Exemplo 4
+```js
+// Definição de regras novas
+SR.extend({
+    age: SR.number().min(18),
+    password: SR
+            .string()
+            .min(8)
+            .matches(/[A-Z]/)
+            .matches(/[a-z]/)
+            .matches(/[0-9]/)
+            .matches(/[@#$%!*]/)
+});
+
+// Definição de schema
+const formRules = {
+    age: SR.age(),
+    userPassword: SR.password(),
+    confirmPassword: SR.equal(SR.ref('userPassword)),
+    email: SR.email()
+};
+const formSchema = new Schema(formRules);
+
+// utilização do schema
+await schema.validate(profileData);
 ```
 
 Se a validação falhar, uma exceção `DataTypeError` será lançada.
