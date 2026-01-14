@@ -50,7 +50,7 @@ SR.extend({
 const formRules = {
     age: SR.age(),
     userPassword: SR.password(),
-    confirmPassword: SR.equal(SR.ref('userPassword)),
+    confirmPassword: SR.equal(SR.ref('userPassword')),
     email: SR.email()
 };
 const formSchema = new Schema(formRules);
