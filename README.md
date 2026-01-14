@@ -265,17 +265,19 @@ SR.string()
 ### 9.1 SR.register
 
 ```js
-SR.register(
-  'between',
-  SR.number().min(10).max(20),
-  '{name} must be between 10 and 20'
-);
+SR.register('between', (value, min, max)=>{
+    if (value < min){
+        return false;
+    }
+
+    return (value <= max);
+},'{name} must be between {0} and {1}');
 ```
 
 Uso:
 
 ```js
-SR.between()
+SR.between(10, 20);
 ```
 
 ---
@@ -286,7 +288,7 @@ Registra múltiplas regras de uma vez.
 
 ```js
 SR.extend({
-  positive: SR.number().min(1),
+  positive: SR.number().min(0),
   shortText: SR.string().max(10)
 });
 ```
