@@ -367,10 +367,20 @@ O fluxo completo é:
 5. Resultado normalizado é retornado para uso no front-end
 
 ```mermaid
-flowchart LR
-    HTML[HTML Form] --> FV
-    FV --> Schema
-    Schema --> Result
+flowchart TD
+    A[HTMLFormElement] -->B(FV)
+    B --> C[Data representation]
+    B --> D[Inferred schema]
+    C --> E(Validation)
+    D --> E(Validation)
+    E --> F[Result]
+    E --> G[Error list]
+    G --> H[Error message]
+    G --> I[HTMLInputElement]
+    style A stroke:#333,stroke-width:3px
+    style F stroke:#333,stroke-width:3px
+    style H stroke:#333,stroke-width:3px
+    style I stroke:#333,stroke-width:3px
 ```
 
 ---

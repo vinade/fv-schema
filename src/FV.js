@@ -1,6 +1,31 @@
 import { DataTypeError, BadSchemaError } from './errors';
-import { SR, SRDataCheck } from './SR';
+import { SR, SRDataCheck, CAST_TYPES, CAST_SYMBOL } from './SR';
 import { Schema } from './Schema';
+
+const CAST = {
+    castToNumber: (val) => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string' && val.trim() !== '') {
+            const parsed = Number(val);
+            return isNaN(parsed) ? val : parsed;
+        }
+        return val; // Retorna original se não for conversível (deixa a regra falhar)
+    },
+
+    castToBoolean: (val) => {
+        if (typeof val === 'boolean') return val;
+        if (typeof val === 'string') {
+            const v = val.toLowerCase().trim();
+            const truthy = ['true', '1', 'on', 'yes'];
+            const falsy = ['false', '0', 'off', 'no'];
+
+            if (truthy.includes(v)) return true;
+            if (falsy.includes(v)) return false;
+        }
+        if (typeof val === 'number') return !isNaN(val) && !!val;
+        return !!val; // Fallback para coerção padrão do JS
+    }
+};
 
 export const FV = (() => {
 
@@ -92,6 +117,44 @@ export const FV = (() => {
             return !(/false/i.test(`${value}`));
         };
 
+        PRIVATE.protectDataType = (chain, dataType) => {
+            if (!chain.chain.length) {
+                throw new Error('Protect data type should occur after a rule');
+            }
+
+            const rules = chain.chain;
+            const lastRule = rules[rules.length - 1];
+             // REVER ESSA LÓGICA, E ESCOLHER UMA FORMA MAIS LIMPA DE SINALIZAR A NECESSIDADE DE CAST
+            const targetCast = SR[dataType][CAST_SYMBOL] || lastRule.fn[CAST_SYMBOL];
+
+            // Não há nada a proteger nesses casos
+            if (
+                !targetCast ||
+                targetCast === CAST_TYPES.UNKNOWN ||
+                targetCast === CAST_TYPES.STRING
+            ) {
+                return chain;
+            }
+
+            const castTransformMap = {
+                [CAST_TYPES.NUMBER]: CAST.castToNumber,
+                [CAST_TYPES.BOOLEAN]: CAST.castToBoolean
+            };
+
+            const castTransform = castTransformMap[targetCast];
+            if (!castTransform) {
+                return chain;
+            }
+
+            const transformChain = SR.transform(castTransform);
+            const transformRule = transformChain.chain.at(-1);
+
+            // Insere a regra de proteção imediatamente antes da última regra
+            rules.splice(rules.length - 1, 0, transformRule);
+
+            return chain;
+        };
+
         PUBLIC.buildSchema = function () {
 
             const schemaObj = {};
@@ -133,6 +196,7 @@ export const FV = (() => {
                     } else {
                         chain = chain[dataType]();
                     }
+                    chain = PRIVATE.protectDataType(chain, dataType);
 
                 } else if (dataRef) {
                     chain = chain.equal(SR.ref(dataRef));

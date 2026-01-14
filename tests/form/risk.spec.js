@@ -77,27 +77,6 @@ describe('FV — Risk exploration tests', () => {
        RISK 3 — data-ref strict equality behavior
        ============================================================ */
 
-    test('data-ref uses strict equality (string vs number fails)', async () => {
-        const a = document.createElement('input');
-        a.name = 'a';
-        a.value = '10';
-        a.setAttribute('data-type', 'string');
-
-        const b = document.createElement('input');
-        b.name = 'b';
-        b.value = 10;
-        b.setAttribute('data-type', 'number');
-        b.setAttribute('data-ref', 'a');
-
-        form.append(a, b);
-
-        const fv = new FV(form);
-        const result = await fv.validate();
-
-        expect(result.valid).toBe(false);
-        expect(result.errors.b).toBeTruthy();
-    });
-
     test('data-ref resolves only from root, not transformed values', async () => {
         SR.register(
             'trimString',

@@ -9,6 +9,16 @@ try{
 
 export const RULE_INSTANCE = Symbol('SC_RULE_INSTANCE');
 
+export const CAST_SYMBOL = Symbol('SR_CAST_TYPE');
+
+// Mapeamento interno de tipos
+export const CAST_TYPES = {
+    NUMBER: 'number',
+    BOOLEAN: 'boolean',
+    STRING: 'string',
+    UNKNOWN: 'unknown',
+};
+
 const DataReference = function (path) {
     this.path = path.split('.');
 };
@@ -83,7 +93,7 @@ const SRuleFactory = (() => {
         return PRIVATE.cloneInstance(SRRef);
     };
 
-    PUBLIC.registerRule = (name, rule, errorMessage) => {
+    PUBLIC.registerRule = (name, rule, errorMessage, options = {}) => {
 
         if (typeof rule === 'function') {
             rule = SR.custom(rule);
@@ -112,7 +122,11 @@ const SRuleFactory = (() => {
             return result;
         }, errorMessage, undefined, true);
 
+        // Set inferred cast type
+        const inferred = SRuleExecutor.inferCast(rule);
+        SR[name][CAST_SYMBOL] = options.cast || inferred;
     };
+
 
     return PUBLIC;
 
@@ -177,7 +191,7 @@ export const SRuleExecutor = (() => {
         return args;
     };
 
-    PUBLIC.valFactor = (val, errorMessage, specialRule, passContext) => {
+    PUBLIC.valFactor = (val, errorMessage, specialRule, passContext, castSymbol) => {
         return function (...params) {
             const instance = SRuleFactory.newSRInstance(this);
 
@@ -227,10 +241,30 @@ export const SRuleExecutor = (() => {
             }
 
             instance.chain.push(rule);
+            rule.fn[CAST_SYMBOL] = castSymbol;
             return instance;
         };
     };
 
+    PUBLIC.inferCast = (ruleChain) => {
+        if (!SRDataCheck.isSchemaRuleInstance(ruleChain)){
+            return;
+        }
+
+        const typedRule = ruleChain.chain.find(rule => {
+            return !!rule.fn[CAST_SYMBOL];
+        });
+
+        if (!typedRule){ // nenhuma regra define necessidade de tipo
+            return;
+        }
+
+        if (typedRule.fn[CAST_SYMBOL] === CAST_TYPES.UNKNOWN){ // transform, custom (regras que destroem tipos)
+            return;
+        }
+
+        return typedRule.fn[CAST_SYMBOL];
+    };
 
     return PUBLIC;
 
@@ -430,17 +464,17 @@ export const SR = (() => {
 
     PUBLIC.equal = valFactor(SRDataCheck.isEqual, MSG.EQUAL);
 
-    PUBLIC.string = valFactor(SRDataCheck.isString, MSG.STRING);
+    PUBLIC.string = valFactor(SRDataCheck.isString, MSG.STRING, undefined, undefined, CAST_TYPES.STRING);
 
-    PUBLIC.number = valFactor(SRDataCheck.isNumber, MSG.NUMBER);
+    PUBLIC.number = valFactor(SRDataCheck.isNumber, MSG.NUMBER, undefined, undefined, CAST_TYPES.NUMBER);
 
-    PUBLIC.integer = valFactor(SRDataCheck.isInteger, MSG.INTEGER);
+    PUBLIC.integer = valFactor(SRDataCheck.isInteger, MSG.INTEGER, undefined, undefined, CAST_TYPES.NUMBER);
 
     PUBLIC.object = valFactor(SRDataCheck.isObject, MSG.OBJECT);
 
     PUBLIC.array = valFactor(SRDataCheck.isArray, MSG.ARRAY);
 
-    PUBLIC.email = valFactor(SRDataCheck.isEmail, MSG.EMAIL);
+    PUBLIC.email = valFactor(SRDataCheck.isEmail, MSG.EMAIL, undefined, undefined, CAST_TYPES.STRING);
 
     PUBLIC.required = valFactor((value) => { return !SRDataCheck.isNull(value); }, MSG.REQUIRED, '_isRequired');
 
@@ -472,7 +506,7 @@ export const SR = (() => {
     PUBLIC.custom = valFactor((value, fn, ...args) => {
         let nextArgs = [value, ...args];
         return fn(...nextArgs);
-    }, MSG.CUSTOM);
+    }, MSG.CUSTOM, undefined, undefined, CAST_TYPES.UNKNOWN);
 
     PUBLIC.error = function (message) {
         const instance = SRuleFactory.newSRInstance(this);
@@ -493,7 +527,7 @@ export const SR = (() => {
     PUBLIC.transform = valFactor((value, fn, data, context) => {
         context.value = fn(value, data);
         return true;
-    }, undefined, undefined, true);
+    }, undefined, undefined, true, CAST_TYPES.UNKNOWN);
 
     PUBLIC.shape = function (schemaData) {
         const instance = SRuleFactory.newSRInstance(this);
@@ -535,18 +569,18 @@ export const SR = (() => {
         return instance;
     };
 
-    PUBLIC.register = (name, rule, errorMessage) => {
+    PUBLIC.register = (name, rule, errorMessage, options = {}) => {
 
         if (NATIVE_TYPE_RULES.has(name)) {
             throw new BadSchemaError("You should not override a native method. If you want to do this, use the .override() method.");
         }
 
-        SRuleFactory.registerRule(name, rule, errorMessage);
+        SRuleFactory.registerRule(name, rule, errorMessage, options);
     };
 
     PUBLIC.override = SRuleFactory.registerRule;
 
-    PUBLIC.extend = (rules) => {
+    PUBLIC.extend = (rules, options = {}) => {
 
         if (!SRDataCheck.isPlainObject(rules)) {
             throw new BadSchemaError('.extend() expects a plain object (key:value), with SR chains');
@@ -567,7 +601,7 @@ export const SR = (() => {
         });
 
         keys.forEach(name => {
-            SRuleFactory.registerRule(name, rules[name]);
+            SRuleFactory.registerRule(name, rules[name], options?.errorMessage, options);
         });
 
     };

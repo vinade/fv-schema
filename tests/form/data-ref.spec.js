@@ -43,11 +43,11 @@ describe('FV — Dynamic data-ref Injection Tests', () => {
 
     test('should use data-ref as parameter for custom registered rules', async () => {
         // Registramos uma regra que compara se o valor é o dobro do outro
-        SR.register('isDouble', (val, other) => val === other * 2, 'Must be double of {0}');
+        SR.register('isDouble', (val, other) => val === parseInt(other) * 2, 'Must be double of {0}', {cast: 'number'});
 
         const baseInput = document.createElement('input');
         baseInput.name = 'baseValue';
-        baseInput.value = '50';
+        baseInput.value = 50;
         baseInput.setAttribute('data-type', 'number');
 
         const targetInput = document.createElement('input');
