@@ -269,7 +269,6 @@ SR.register('between', (value, min, max)=>{
     if (value < min){
         return false;
     }
-
     return (value <= max);
 },'{name} must be between {0} and {1}');
 ```
