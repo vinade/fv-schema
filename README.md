@@ -16,23 +16,18 @@ Exemplo 1:
 const schema = new Schema({
   age: SR.number().min(18)
 });
-```
-
-Exemplo 2:
-```js
-
 const data = {age: 27};
 await schema.validate(data);
 ```
 
-Exemplo 3:
+Exemplo 2:
 ```js
 const age = SR.number().min(18);
 const schema = new Schema(age);
 const data = 27;
 await schema.validate(data);
 ```
-Exemplo 4
+Exemplo 3
 ```js
 // Definição de regras novas
 SR.extend({
